@@ -109,6 +109,17 @@ func (r *Router) ServeTCP(conn tcp.WriteCloser) {
 
 	// TODO -- Check if ProxyProtocol changes the first bytes of the request
 	br := bufio.NewReader(conn)
+	postgres, err := isPostgres(br)
+	if err != nil {
+		conn.Close()
+		return
+	}
+
+	if postgres {
+		r.servePostgres(r.GetConn(conn, getPeeked(br)))
+		return
+	}
+
 	hello, err := clientHelloInfo(br)
 	if err != nil {
 		conn.Close()
@@ -287,9 +298,9 @@ func (r *Router) SetHTTPSHandler(handler http.Handler, config *tls.Config) {
 
 // Conn is a connection proxy that handles Peeked bytes.
 type Conn struct {
-	// Peeked are the bytes that have been read from Conn for the purposes of route matching,
-	// but have not yet been consumed by Read calls.
-	// It set to nil by Read when fully consumed.
+	// Peeked are the bytes that have been read from Conn for the
+	// purposes of route matching, but have not yet been consumed
+	// by Read calls. It is set to nil by Read when fully consumed.
 	Peeked []byte
 
 	// Conn is the underlying connection.
