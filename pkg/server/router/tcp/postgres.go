@@ -8,7 +8,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/rs/zerolog/log"
+	"github.com/traefik/traefik/v2/pkg/log"
 	tcpmuxer "github.com/traefik/traefik/v2/pkg/muxer/tcp"
 	"github.com/traefik/traefik/v2/pkg/tcp"
 )
@@ -29,7 +29,7 @@ func isPostgres(br *bufio.Reader) (bool, error) {
 		if err != nil {
 			var opErr *net.OpError
 			if !errors.Is(err, io.EOF) && (!errors.As(err, &opErr) || opErr.Timeout()) {
-				log.Error().Err(err).Msg("Error while Peeking first byte")
+				log.WithoutContext().Errorf("Error while Peeking first byte: %v", err)
 			}
 			return false, err
 		}
@@ -72,7 +72,7 @@ func (r *Router) servePostgres(conn tcp.WriteCloser) {
 
 	connData, err := tcpmuxer.NewConnData(hello.serverName, conn, hello.protos)
 	if err != nil {
-		log.Error().Err(err).Msg("Error while reading TCP connection data")
+		log.WithoutContext().Errorf("Error while reading TCP connection data: %v", err)
 		conn.Close()
 		return
 	}
